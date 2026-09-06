@@ -18,10 +18,12 @@ Browser-safe:
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 Server-only:
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SECRET_KEY`
 - `OPENAI_API_KEY` (when enabled)
 - `DOCUMENT_WORKER_URL`
 - `DOCUMENT_WORKER_SECRET`
+
+New Supabase applications use the current publishable (`sb_publishable_...`) and secret (`sb_secret_...`) key model. Do not start a new deployment on the legacy `anon` / `service_role` key model.
 
 Never commit values. Maintain `.env.example` with blank placeholders.
 
@@ -32,7 +34,7 @@ Production schema changes use versioned migrations in `supabase/migrations`. RLS
 Deploy separately to a container-capable platform with LibreOffice/PDF tooling. The Vercel app invokes it using authenticated server-side requests.
 
 ## CI/CD
-Vercel Git integration is the simplest default. If explicit CI is later added, build/test a preview artifact before promotion. Vercel CLI tokens and project IDs belong in CI secrets, never source control.
+Vercel Git integration is the simplest default. CI verifies type checking, linting and a production build. The repository commits an npm lockfile so Vercel and CI resolve the same dependency graph.
 
 ## Rollback
 Web rollback uses Vercel deployment rollback/promotion. Database migrations must be designed with safe forward/backward rollout strategy rather than assuming web rollback reverses schema changes.
