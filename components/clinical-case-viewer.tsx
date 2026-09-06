@@ -56,7 +56,7 @@ function StageCard({ stage }: { stage: ClinicalCaseStage }) {
         </>
       ) : null}
 
-      {stage.type !== "presentation" && stage.type !== "references" && stage.type !== "legacy" && stage.text ? (
+      {stage.type !== "presentation" && stage.type !== "references" && stage.text ? (
         <div className="space-y-3 text-[15px] leading-7 text-[#27323a]">
           {paragraphText(stage.text).map((part, index) => <p key={index}>{part}</p>)}
         </div>
