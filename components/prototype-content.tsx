@@ -6,7 +6,7 @@ import { slideToHtml, type NativeSlide } from "@/lib/authoring";
 export type StarterStructuredContent = {
   starter_key?: string;
   prototype_source?: string;
-  native_kind?: "teaching_material";
+  native_kind?: "teaching_material" | "clinical_case" | string;
   subtitle?: string | null;
   tags?: string[];
   body_html?: string;
