@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ResourceActions } from "@/components/resource-actions";
 import { ResourceMetadataEditor } from "@/components/resource-metadata-editor";
@@ -110,7 +109,7 @@ export function TeachingMaterialEditor({ resourceId, initialMetadata, initialUpd
     <main className="pb-12">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href={`/resources/${resourceId}`} className="text-sm font-semibold text-[var(--accent)]">← Back to resource</Link>
+          <a href={`/resources/${resourceId}`} className="text-sm font-semibold text-[var(--accent)]">← Back to resource</a>
           <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.035em]">Edit Teaching Material</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -118,7 +117,7 @@ export function TeachingMaterialEditor({ resourceId, initialMetadata, initialUpd
             {autosave.status === "saved" ? "Saved" : autosave.status === "saving" ? "Saving…" : autosave.status === "conflict" ? "Newer version exists — reload" : "Save failed"}
           </span>
           {autosave.status === "error" ? <button type="button" onClick={autosave.retry} className="rounded-lg border border-[var(--line)] px-3 py-1.5 font-semibold">Retry</button> : null}
-          <Link href={`/resources/${resourceId}`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">Preview / Present</Link>
+          <a href={`/resources/${resourceId}`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">Preview / Present</a>
         </div>
       </div>
 

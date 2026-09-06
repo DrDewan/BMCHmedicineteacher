@@ -59,7 +59,7 @@ export function ResourceMetadataEditor({ value, categories, onChange }: Props) {
           <input value={value.difficulty} maxLength={80} onChange={(event) => patch({ difficulty: event.target.value })} placeholder="Standard" className={fieldClass()} />
         </label>
         <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Tags
-          <input value={value.tags.join(", ")} onChange={(event) => patch({ tags: event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 30) })} placeholder="Emergency, Respiratory, Viva" className={fieldClass()} />
+          <input value={value.tags.join(",")} onChange={(event) => patch({ tags: event.target.value.split(",").slice(0, 30) })} placeholder="Emergency, Respiratory, Viva" className={fieldClass()} />
         </label>
         <label className="text-xs font-semibold text-[var(--muted)] sm:col-span-2">Description
           <textarea value={value.description} maxLength={2000} rows={3} onChange={(event) => patch({ description: event.target.value })} className={`${fieldClass()} resize-y`} />

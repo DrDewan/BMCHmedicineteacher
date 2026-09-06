@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ResourceActions } from "@/components/resource-actions";
 import { ResourceMetadataEditor } from "@/components/resource-metadata-editor";
@@ -27,7 +26,7 @@ export function ResourceMetadataOnlyEditor({ resourceId, resourceType, initialMe
     <main className="mx-auto max-w-[1100px] pb-12">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href={`/resources/${resourceId}`} className="text-sm font-semibold text-[var(--accent)]">← Back to resource</Link>
+          <a href={`/resources/${resourceId}`} className="text-sm font-semibold text-[var(--accent)]">← Back to resource</a>
           <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.035em]">Edit Resource</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">{resourceType} metadata and lifecycle</p>
         </div>

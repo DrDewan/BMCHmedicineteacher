@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ResourceStatus } from "@/lib/resource-authoring";
 
 type Props = {
@@ -23,6 +23,9 @@ export function ResourceActions({ resourceId, initialStatus, initialUpdatedAt, i
   const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState<LifecycleAction | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => setUpdatedAt(initialUpdatedAt), [initialUpdatedAt]);
+  useEffect(() => setStatus(initialStatus), [initialStatus]);
 
   async function perform(action: LifecycleAction) {
     if (disabled || busy) return;

@@ -9,7 +9,7 @@ export const editableResourceMetadataSchema = z.object({
   categoryId: z.string().uuid(),
   topic: z.string().trim().max(120),
   subtopic: z.string().trim().max(120),
-  tags: z.array(z.string().trim().min(1).max(60)).max(30),
+  tags: z.array(z.string().max(60)).max(30),
   audience: z.string().trim().max(120),
   difficulty: z.string().trim().max(80),
   visibility: resourceVisibilitySchema,
@@ -97,7 +97,7 @@ export function mergeEditableMetadata(contentValue: unknown, metadata: EditableR
   };
 
   setOrDelete("topic", metadata.topic);
-  delete next.system;
+  setOrDelete("system", metadata.topic);
   setOrDelete("subtopic", metadata.subtopic);
   setOrDelete("audience", metadata.audience);
   setOrDelete("difficulty", metadata.difficulty);
