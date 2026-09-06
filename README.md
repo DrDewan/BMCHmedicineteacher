@@ -88,6 +88,7 @@ Documents:
 - `21-SHARED-AUTHORING-FOUNDATION.md`
 - `22-CLINICAL-CASE-BUILDER.md`
 - `23-INVESTIGATION-BUILDER.md`
+- `24-PROCEDURE-BUILDER.md`
 - `PROTOTYPE-MIGRATION.md`
 
 `20-NEXT-IMPLEMENTATION-PLAN.md` is the current execution source of truth for build order, dependencies and increment exit criteria.
@@ -103,10 +104,10 @@ Completed authoring increments:
 1. Shared resource authoring foundation
 2. Clinical Case Builder
 3. Investigation Builder
+4. Procedure Builder
 
 Next increments:
 
-4. Procedure Builder
 5. Clinical Image / X-Ray / ECG editors
 6. Question Editor
 7. Shared BMCH Library Resource Picker
