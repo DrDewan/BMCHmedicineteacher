@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ClinicalCaseEditor } from "@/components/clinical-case-editor";
 import { InvestigationEditor } from "@/components/investigation-editor";
+import { ProcedureEditor } from "@/components/procedure-editor";
 import { ResourceMetadataOnlyEditor } from "@/components/resource-metadata-only-editor";
 import { TeachingMaterialEditor } from "@/components/teaching-material-editor";
 import { requireActiveProfile } from "@/lib/auth";
@@ -57,6 +58,19 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
   if (resource.resource_type === "investigation") {
     return (
       <InvestigationEditor
+        resourceId={resource.id}
+        initialMetadata={initialMetadata}
+        initialUpdatedAt={resource.updated_at}
+        initialContent={resource.structured_content}
+        categories={categories}
+        role={profile.role}
+      />
+    );
+  }
+
+  if (resource.resource_type === "procedure") {
+    return (
+      <ProcedureEditor
         resourceId={resource.id}
         initialMetadata={initialMetadata}
         initialUpdatedAt={resource.updated_at}
