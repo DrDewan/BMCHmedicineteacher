@@ -85,6 +85,8 @@ Documents:
 - `18-AUTHORING-AND-CONTENT-EDITING.md`
 - `19-PERFORMANCE.md`
 - `20-NEXT-IMPLEMENTATION-PLAN.md`
+- `21-SHARED-AUTHORING-FOUNDATION.md`
+- `22-CLINICAL-CASE-BUILDER.md`
 - `PROTOTYPE-MIGRATION.md`
 
 `20-NEXT-IMPLEMENTATION-PLAN.md` is the current execution source of truth for build order, dependencies and increment exit criteria.
@@ -95,10 +97,13 @@ Documents:
 
 Completed baseline includes the resource library, authentication, Teaching Material editor, PPTX/DOCX processing foundation, uploaded PowerPoint viewer, starter dataset, production deployment and initial performance work.
 
-The next increments are:
+Completed authoring increments:
 
 1. Shared resource authoring foundation
 2. Clinical Case Builder
+
+Next increments:
+
 3. Investigation Builder
 4. Procedure Builder
 5. Clinical Image / X-Ray / ECG editors
