@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireActiveProfile } from "@/lib/auth";
 
-const futureBuilders = ["Clinical Case", "Investigation", "Procedure", "Clinical Image", "X-Ray", "ECG", "Question", "Presentation"];
+const futureBuilders = ["Investigation", "Procedure", "Clinical Image", "X-Ray", "ECG", "Question", "Presentation"];
 
 export default async function CreatePage() {
   const profile = await requireActiveProfile();
@@ -25,6 +25,11 @@ export default async function CreatePage() {
           <span className="grid h-11 w-11 place-items-center rounded-[13px] bg-[var(--accent)] text-xs font-extrabold text-white">TM</span>
           <h2 className="mt-5 text-xl font-bold">Teaching Material</h2>
           <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Build an editable slide-format teaching deck.</p>
+        </Link>
+        <Link href="/create/clinical-case" className="rounded-[18px] border border-[#b7d2cf] bg-[#f8fcfb] p-5 shadow-[0_10px_28px_rgba(25,40,55,0.04)] transition hover:-translate-y-0.5">
+          <span className="grid h-11 w-11 place-items-center rounded-[13px] bg-[var(--accent)] text-xs font-extrabold text-white">CC</span>
+          <h2 className="mt-5 text-xl font-bold">Clinical Case</h2>
+          <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Build a progressive case with vitals, questions, findings, diagnosis and management.</p>
         </Link>
         <Link href="/upload" className="rounded-[18px] border border-[var(--line)] bg-white p-5 shadow-[0_10px_28px_rgba(25,40,55,0.04)] transition hover:-translate-y-0.5">
           <span className="grid h-11 w-11 place-items-center rounded-[13px] bg-[var(--accent-soft)] text-xs font-extrabold text-[var(--accent)]">UP</span>
