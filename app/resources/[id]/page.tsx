@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { ClinicalCaseViewer } from "@/components/clinical-case-viewer";
 import { DocumentProcessingControls } from "@/components/document-processing-controls";
 import { InvestigationViewer } from "@/components/investigation-viewer";
+import { ProcedureViewer } from "@/components/procedure-viewer";
 import { StarterResourceViewer, type StarterStructuredContent } from "@/components/prototype-content";
 import { ResourceActions } from "@/components/resource-actions";
 import { requireActiveProfile } from "@/lib/auth";
 import { clinicalCaseContentSchema } from "@/lib/clinical-case";
 import { investigationContentSchema } from "@/lib/investigation";
+import { procedureContentSchema } from "@/lib/procedure";
 import { resourceStatusSchema } from "@/lib/resource-authoring";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,6 +41,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   const content = resource.structured_content as unknown as StarterStructuredContent;
   const nativeCase = resource.resource_type === "case" ? clinicalCaseContentSchema.safeParse(resource.structured_content) : null;
   const nativeInvestigation = resource.resource_type === "investigation" ? investigationContentSchema.safeParse(resource.structured_content) : null;
+  const nativeProcedure = resource.resource_type === "procedure" ? procedureContentSchema.safeParse(resource.structured_content) : null;
   const isStructuredContent = Boolean(
     content?.starter_key ||
     content?.native_kind ||
@@ -93,6 +96,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       ) : nativeInvestigation?.success ? (
         <>
           <InvestigationViewer title={resource.title} content={nativeInvestigation.data} />
+          {safetyNote}
+        </>
+      ) : nativeProcedure?.success ? (
+        <>
+          <ProcedureViewer title={resource.title} content={nativeProcedure.data} />
           {safetyNote}
         </>
       ) : isStructuredContent ? (
