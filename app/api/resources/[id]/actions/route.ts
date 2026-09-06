@@ -59,7 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const update: Record<string, unknown> = {};
-    let auditAction = action;
+    let auditAction: string = action;
     if (action === "publish") update.status = "approved";
     if (action === "move_to_draft") update.status = "draft";
     if (action === "archive") update.status = "archived";
