@@ -8,7 +8,7 @@ BMCH Medicine Education is a registrar-focused clinical education workspace buil
 
 **STORE → FIND → SHOW → TEACH → QUESTION → PRACTISE**
 
-The application is intentionally not a general-purpose LMS. Its core jobs are to organise department teaching material, display it comfortably during teaching, build reusable clinical presentations, generate reviewable questions from source material, and run mixed practice rounds.
+The application is intentionally not a general-purpose LMS. Its core jobs are to organise department teaching material, display it comfortably during teaching, build and edit reusable native clinical teaching content, assemble presentations, generate reviewable questions from source material, and run mixed practice rounds.
 
 ## Primary modules
 
@@ -22,10 +22,12 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 - Question Bank
 - Guidelines
 - Practice Round
+- Native content authoring and editing
 - Resource upload and library management
 - PDF / slide / image teaching viewers
 - Native BMCH presentation builder
 - AI-assisted question generation with human approval
+- AI-assisted native teaching-content generation
 
 ## Initial technical stack
 
@@ -51,13 +53,15 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 7. Use private storage and Row Level Security for protected data.
 8. Do not upload identifiable patient information unless an approved future governance workflow explicitly permits it.
 9. The native presentation builder should be structured for medical teaching rather than attempt to clone Microsoft PowerPoint.
-10. Architecture-changing work must update the documentation in `/docs`.
+10. Native BMCH teaching resources must be editable without code or database access.
+11. Uploaded PDF/PPTX/DOCX files remain immutable originals; editing their contents is handled through replacement versions or conversion into BMCH-native material rather than building a full Office editor.
+12. Architecture-changing work must update the documentation in `/docs`.
 
 ## Repository documentation
 
 The detailed specification lives in [`/docs`](./docs) and is the source of truth for implementation.
 
-Planned documents:
+Documents:
 
 - `00-PRODUCT-OVERVIEW.md`
 - `01-PRODUCT-REQUIREMENTS.md`
@@ -77,6 +81,8 @@ Planned documents:
 - `15-DEPLOYMENT.md`
 - `16-ROADMAP.md`
 - `17-ACCEPTANCE-CRITERIA.md`
+- `18-AUTHORING-AND-CONTENT-EDITING.md`
+- `PROTOTYPE-MIGRATION.md`
 
 `AGENTS.md` contains implementation rules for coding agents.
 
@@ -87,13 +93,16 @@ Planned documents:
 3. Supabase schema/auth/storage foundation
 4. Resource library and uploads
 5. PDF/image viewers
-6. PPTX/DOCX document processing and slide previews
-7. Structured clinical content
-8. Presentation builder
-9. AI question generation and approval
-10. Practice Round
-11. AI presentation assistant
+6. Approved prototype UX/content migration
+7. Native authoring and editing foundation
+8. Teaching Material slide editor
+9. Clinical Case / Investigation / Procedure editors
+10. PPTX/DOCX document processing and slide previews
+11. Presentation builder and reusable resource insertion
+12. AI question generation and approval
+13. Practice Round
+14. AI content/presentation assistant
 
 ## Status
 
-Documentation-first foundation in progress. No production medical workflow should be assumed complete until its acceptance criteria in `/docs/17-ACCEPTANCE-CRITERIA.md` are satisfied.
+Documentation-first architecture is established and implementation is in progress. No production medical workflow should be assumed complete until its acceptance criteria in `/docs/17-ACCEPTANCE-CRITERIA.md` and the relevant feature specification are satisfied.
