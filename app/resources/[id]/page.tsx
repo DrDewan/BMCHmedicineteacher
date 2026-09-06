@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClinicalCaseViewer } from "@/components/clinical-case-viewer";
 import { DocumentProcessingControls } from "@/components/document-processing-controls";
 import { StarterResourceViewer, type StarterStructuredContent } from "@/components/prototype-content";
 import { ResourceActions } from "@/components/resource-actions";
 import { requireActiveProfile } from "@/lib/auth";
+import { clinicalCaseContentSchema } from "@/lib/clinical-case";
 import { resourceStatusSchema } from "@/lib/resource-authoring";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +35,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   ]);
 
   const content = resource.structured_content as unknown as StarterStructuredContent;
+  const nativeCase = resource.resource_type === "case" ? clinicalCaseContentSchema.safeParse(resource.structured_content) : null;
   const isStructuredContent = Boolean(
     content?.starter_key ||
     content?.native_kind ||
@@ -73,7 +76,14 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         </div>
       </section>
 
-      {isStructuredContent ? (
+      {nativeCase?.success ? (
+        <>
+          <ClinicalCaseViewer title={resource.title} content={nativeCase.data} />
+          <div className="mt-5 rounded-[14px] border border-[#eadfbf] bg-[#fffdf8] px-4 py-3 text-xs leading-5 text-[#6e5a2a]">
+            Teaching material for supervised medical education. Clinical management should follow the patient&apos;s condition, senior clinical judgement and current BMCH/local protocols.
+          </div>
+        </>
+      ) : isStructuredContent ? (
         <>
           <StarterResourceViewer title={resource.title} resourceType={resource.resource_type} content={content} />
           <div className="mt-5 rounded-[14px] border border-[#eadfbf] bg-[#fffdf8] px-4 py-3 text-xs leading-5 text-[#6e5a2a]">
