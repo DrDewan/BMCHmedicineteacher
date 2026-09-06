@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ResourceStatus } from "@/lib/resource-authoring";
 
 type Props = {
@@ -18,14 +18,14 @@ type LifecycleAction = "publish" | "move_to_draft" | "archive" | "restore" | "so
 
 export function ResourceActions({ resourceId, initialStatus, initialUpdatedAt, isAdmin, disabled = false, onUpdatedAt, onStatusChange }: Props) {
   const router = useRouter();
-  const [status, setStatus] = useState<ResourceStatus>(initialStatus);
-  const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
+  const [localStatus, setLocalStatus] = useState<ResourceStatus | null>(null);
+  const [localUpdatedAt, setLocalUpdatedAt] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState<LifecycleAction | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => setUpdatedAt(initialUpdatedAt), [initialUpdatedAt]);
-  useEffect(() => setStatus(initialStatus), [initialStatus]);
+  const status = onStatusChange ? initialStatus : (localStatus ?? initialStatus);
+  const expectedUpdatedAt = onUpdatedAt ? initialUpdatedAt : (localUpdatedAt ?? initialUpdatedAt);
 
   async function perform(action: LifecycleAction) {
     if (disabled || busy) return;
@@ -38,27 +38,27 @@ export function ResourceActions({ resourceId, initialStatus, initialUpdatedAt, i
       const response = await fetch(`/api/resources/${resourceId}/actions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action, expectedUpdatedAt: updatedAt }),
+        body: JSON.stringify({ action, expectedUpdatedAt }),
       });
       const result = (await response.json()) as { error?: string; updatedAt?: string; status?: ResourceStatus; resourceId?: string };
       if (!response.ok) throw new Error(result.error || "Action failed");
 
       if (result.resourceId && action === "duplicate") {
-        window.location.assign(`/resources/${result.resourceId}/edit`);
+        router.push(`/resources/${result.resourceId}/edit`);
         return;
       }
       if (action === "permanent_delete") {
-        window.location.assign("/");
+        router.push("/");
         return;
       }
 
       if (result.updatedAt) {
-        setUpdatedAt(result.updatedAt);
-        onUpdatedAt?.(result.updatedAt);
+        if (onUpdatedAt) onUpdatedAt(result.updatedAt);
+        else setLocalUpdatedAt(result.updatedAt);
       }
       if (result.status) {
-        setStatus(result.status);
-        onStatusChange?.(result.status);
+        if (onStatusChange) onStatusChange(result.status);
+        else setLocalStatus(result.status);
       }
       if (action === "soft_delete") {
         setDeleted(true);
