@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentProcessingControls } from "@/components/document-processing-controls";
 import { StarterResourceViewer, type StarterStructuredContent } from "@/components/prototype-content";
+import { ResourceActions } from "@/components/resource-actions";
 import { requireActiveProfile } from "@/lib/auth";
+import { resourceStatusSchema } from "@/lib/resource-authoring";
 import { createClient } from "@/lib/supabase/server";
 
 const OFFICE_MIME_TYPES = new Set([
@@ -40,8 +42,10 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     content?.image_url,
   );
   const canEdit = profile.role === "admin" || profile.role === "editor";
-  const canEditTeachingMaterial = canEdit && resource.resource_type === "presentation";
+  const canManageNative = canEdit && !version;
   const isOfficeDocument = Boolean(version?.mime_type && OFFICE_MIME_TYPES.has(version.mime_type));
+  const parsedStatus = resourceStatusSchema.safeParse(resource.status);
+  const lifecycleStatus = parsedStatus.success ? parsedStatus.data : "draft";
 
   let signedUrl: string | null = null;
   if (version?.storage_path) {
@@ -63,7 +67,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">{resource.description || content?.subtitle || "Teaching resource"}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {canEditTeachingMaterial ? <Link href={`/resources/${resource.id}/edit`} className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold">Edit</Link> : null}
+            {canManageNative ? <Link href={`/resources/${resource.id}/edit`} className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold">Edit</Link> : null}
             <span className="w-fit rounded-lg bg-[#eef5f4] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--accent)]">{resource.resource_type}</span>
           </div>
         </div>
@@ -109,7 +113,18 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         </section>
       )}
 
-      {canEdit && !canEditTeachingMaterial ? <div className="mt-5 text-xs text-[var(--muted)]">Metadata/version editing for uploaded files remains attached to this resource record and will use the shared authoring foundation.</div> : null}
+      {canManageNative ? (
+        <div className="mt-5">
+          <ResourceActions
+            resourceId={resource.id}
+            initialStatus={lifecycleStatus}
+            initialUpdatedAt={resource.updated_at}
+            isAdmin={profile.role === "admin"}
+          />
+        </div>
+      ) : null}
+
+      {canEdit && version ? <div className="mt-5 text-xs text-[var(--muted)]">Uploaded-file metadata/version lifecycle remains scheduled for the dedicated uploaded-resource management increment.</div> : null}
     </main>
   );
 }
