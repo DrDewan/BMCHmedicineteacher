@@ -84,27 +84,38 @@ Documents:
 - `17-ACCEPTANCE-CRITERIA.md`
 - `18-AUTHORING-AND-CONTENT-EDITING.md`
 - `19-PERFORMANCE.md`
+- `20-NEXT-IMPLEMENTATION-PLAN.md`
 - `PROTOTYPE-MIGRATION.md`
+
+`20-NEXT-IMPLEMENTATION-PLAN.md` is the current execution source of truth for build order, dependencies and increment exit criteria.
 
 `AGENTS.md` contains implementation rules for coding agents.
 
-## Development order
+## Current execution order
 
-1. Documentation and repository contract
-2. Deployable Next.js foundation
-3. Supabase schema/auth/storage foundation
-4. Resource library and uploads
-5. PDF/image viewers
-6. Approved prototype UX/content migration
-7. Native authoring and editing foundation
-8. Teaching Material slide editor
-9. Clinical Case / Investigation / Procedure editors
-10. PPTX/DOCX document processing and slide previews
-11. Presentation builder and reusable resource insertion
-12. AI question generation and approval
-13. Practice Round
-14. AI content/presentation assistant
+Completed baseline includes the resource library, authentication, Teaching Material editor, PPTX/DOCX processing foundation, uploaded PowerPoint viewer, starter dataset, production deployment and initial performance work.
+
+The next increments are:
+
+1. Shared resource authoring foundation
+2. Clinical Case Builder
+3. Investigation Builder
+4. Procedure Builder
+5. Clinical Image / X-Ray / ECG editors
+6. Question Editor
+7. Shared BMCH Library Resource Picker
+8. Native Presentation Builder
+9. PPTX export
+10. AI Question Generation
+11. AI-assisted native authoring
+12. Uploaded-resource management completion
+13. Search/library usability pass
+14. Admin user management
+15. Quality/security/performance hardening
+16. BMCH registrar pilot and feedback loop
+
+Do not jump ahead of this sequence without an explicit product decision. Detailed requirements live in `docs/20-NEXT-IMPLEMENTATION-PLAN.md`.
 
 ## Status
 
-Documentation-first architecture is established and implementation is in progress. No production medical workflow should be assumed complete until its acceptance criteria in `/docs/17-ACCEPTANCE-CRITERIA.md` and the relevant feature specification are satisfied.
+Documentation-first architecture is established and implementation is active. No production medical workflow should be assumed complete until its acceptance criteria in `/docs/17-ACCEPTANCE-CRITERIA.md`, the relevant feature specification, and the corresponding increment exit criteria in `/docs/20-NEXT-IMPLEMENTATION-PLAN.md` are satisfied.
