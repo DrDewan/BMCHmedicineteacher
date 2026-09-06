@@ -36,7 +36,7 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 - Supabase PostgreSQL
 - Supabase Auth
 - Supabase Storage
-- Vercel hosting
+- Vercel-compatible web hosting (currently Railway production)
 - PDF.js for PDF viewing
 - Containerised document worker for PPTX/DOCX preview generation and extraction
 - PptxGenJS for PowerPoint export
@@ -56,6 +56,7 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 10. Native BMCH teaching resources must be editable without code or database access.
 11. Uploaded PDF/PPTX/DOCX files remain immutable originals; editing their contents is handled through replacement versions or conversion into BMCH-native material rather than building a full Office editor.
 12. Architecture-changing work must update the documentation in `/docs`.
+13. Keep the interactive web runtime geographically close to both Bangladesh users and Supabase; current production web region is Singapore with Supabase in Mumbai.
 
 ## Repository documentation
 
@@ -82,6 +83,7 @@ Documents:
 - `16-ROADMAP.md`
 - `17-ACCEPTANCE-CRITERIA.md`
 - `18-AUTHORING-AND-CONTENT-EDITING.md`
+- `19-PERFORMANCE.md`
 - `PROTOTYPE-MIGRATION.md`
 
 `AGENTS.md` contains implementation rules for coding agents.
