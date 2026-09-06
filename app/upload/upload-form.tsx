@@ -30,6 +30,13 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   gif: "image/gif",
 };
 
+const OFFICE_MIME_TYPES = new Set([
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 const TYPE_BY_CATEGORY: Record<string, string> = {
   "clinical-cases": "case",
   "teaching-materials": "pdf",
@@ -49,6 +56,25 @@ function inferMimeType(file: File) {
 
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   return MIME_BY_EXTENSION[extension] ?? "";
+}
+
+function inferGenericResourceType(mimeType: string, selectedType: string) {
+  if (!["pdf", "pptx", "docx", "other"].includes(selectedType)) return selectedType;
+  if (mimeType === "application/pdf") return "pdf";
+  if (
+    mimeType === "application/vnd.ms-powerpoint" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ) {
+    return "pptx";
+  }
+  if (
+    mimeType === "application/msword" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return "docx";
+  }
+  if (mimeType.startsWith("image/")) return "image";
+  return selectedType;
 }
 
 function sanitizeFileName(name: string) {
@@ -101,6 +127,7 @@ export function UploadForm({ categories, initialCategory }: UploadFormProps) {
         throw new Error("Unsupported file type. Use PDF, PowerPoint, Word, JPG, PNG, WebP or GIF.");
       }
 
+      const finalResourceType = inferGenericResourceType(mimeType, resourceType);
       const supabase = createClient();
       const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
       const userId = claimsData?.claims?.sub;
@@ -122,14 +149,14 @@ export function UploadForm({ categories, initialCategory }: UploadFormProps) {
         throw new Error(uploadError.message || "File upload failed.");
       }
 
-      const processingStatus = mimeType.startsWith("image/") ? "not_required" : "pending";
+      const processingStatus = OFFICE_MIME_TYPES.has(mimeType) ? "pending" : "not_required";
       const { error: metadataError } = await supabase.rpc("create_resource_with_version", {
         p_resource_id: resourceId,
         p_version_id: versionId,
         p_title: title,
         p_description: description,
         p_category_id: categoryId,
-        p_resource_type: resourceType,
+        p_resource_type: finalResourceType,
         p_visibility: visibility,
         p_original_filename: file.name,
         p_mime_type: mimeType,
