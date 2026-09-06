@@ -41,26 +41,22 @@ export async function login(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: usernameToInternalEmail(parsed.data.username),
     password: parsed.data.password,
   });
 
-  if (error) {
+  if (error || !signInData.user?.id) {
     redirect(`/login?error=${encodeURIComponent("Invalid username or password.")}`);
   }
 
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub;
-
-  if (!userId) {
-    redirect(`/login?error=${encodeURIComponent("Unable to verify this account.")}`);
-  }
-
+  // signInWithPassword already returns the verified authenticated user.
+  // Re-running getClaims() here adds another auth round trip without adding
+  // a meaningful security check. The profile activation check remains required.
   const { data: profile } = await supabase
     .from("profiles")
     .select("is_active")
-    .eq("id", userId)
+    .eq("id", signInData.user.id)
     .single();
 
   if (!profile?.is_active) {
