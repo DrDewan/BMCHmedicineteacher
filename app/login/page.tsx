@@ -30,14 +30,16 @@ export default async function LoginPage({
           <input type="hidden" name="next" value={params.next ?? "/"} />
 
           <label className="block text-sm font-semibold">
-            Email
+            Username
             <input
-              name="email"
-              type="email"
-              autoComplete="email"
+              name="username"
+              type="text"
+              autoComplete="username"
               required
+              minLength={3}
+              maxLength={64}
               className="mt-2 w-full rounded-xl border border-[var(--line)] px-3.5 py-3 font-normal outline-none transition focus:border-[var(--accent)]"
-              placeholder="name@bmch.edu.bd"
+              placeholder="drraphael"
             />
           </label>
 
