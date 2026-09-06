@@ -25,18 +25,35 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
   const canEdit = profile.role === "admin" || profile.role === "editor";
   const supabase = await createClient();
-  const { data: dbCategory } = await supabase.from("resource_categories").select("id").eq("slug", slug).single();
-  if (!dbCategory) notFound();
 
-  const { data: resources, error } = await supabase
-    .from("resources")
-    .select("id, title, description, resource_type, status, visibility, updated_at, structured_content")
-    .eq("category_id", dbCategory.id)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
+  // Fetch the category and its visible resources in one PostgREST request.
+  // This replaces the previous category lookup followed by a second resources query.
+  const { data: dbCategory, error } = await supabase
+    .from("resource_categories")
+    .select(`
+      id,
+      resources (
+        id,
+        title,
+        description,
+        resource_type,
+        status,
+        visibility,
+        updated_at,
+        structured_content,
+        deleted_at
+      )
+    `)
+    .eq("slug", slug)
+    .is("resources.deleted_at", null)
+    .order("updated_at", { referencedTable: "resources", ascending: false })
+    .maybeSingle();
 
+  if (!error && !dbCategory) notFound();
+
+  const resources = dbCategory?.resources ?? [];
   const isMediaCategory = ["clinical-images", "x-rays", "ecg"].includes(slug);
-  const mediaItems: MediaGalleryItem[] = (resources ?? [])
+  const mediaItems: MediaGalleryItem[] = resources
     .filter((resource) => {
       const content = resource.structured_content as unknown as StarterStructuredContent;
       return Boolean(content?.image_url);
@@ -65,7 +82,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
         <section className="mt-2 rounded-[18px] border border-red-200 bg-red-50 p-5 text-sm text-red-800">The resource list could not be loaded.</section>
       ) : isMediaCategory && mediaItems.length > 0 ? (
         <section className="mt-2"><MediaGallery items={mediaItems} /></section>
-      ) : resources && resources.length > 0 ? (
+      ) : resources.length > 0 ? (
         <section className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
           {resources.map((resource) => {
             const content = resource.structured_content as unknown as StarterStructuredContent;
