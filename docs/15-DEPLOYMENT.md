@@ -11,7 +11,12 @@ The application is currently live on Railway while remaining Vercel-compatible.
 - Source: `DrDewan/BMCHmedicineteacher`, branch `main`
 - Public URL: `https://web-production-ad1ad4.up.railway.app`
 - Runtime: Next.js 16.3.3
+- Production region: **Singapore (`sin`)**
+- Replicas: **1**
+- Supabase region: **Mumbai (`ap-south-1`)**
 - Production deployment follows GitHub `main`.
+
+The web runtime was moved from Railway US East (`iad`) to Singapore on 2026-09-06 after production timing showed avoidable cross-region latency between Bangladesh users, the web server and Supabase Mumbai. See `docs/19-PERFORMANCE.md` for the baseline and performance rules.
 
 ### Document worker
 
@@ -23,6 +28,8 @@ The application is currently live on Railway while remaining Vercel-compatible.
 - Health endpoint: `/health`
 - Runtime dependencies: LibreOffice + Poppler
 - Production deployment follows GitHub `main`.
+
+The document worker does not need to be colocated with the interactive web app. It performs file conversion outside the user's page-rendering path and remains independently deployable.
 
 ### Supabase bridge
 
@@ -46,7 +53,8 @@ When Vercel is used:
 - use repository root as the project root,
 - `main` is production,
 - non-production branches may create preview deployments,
-- configure the same browser-safe Supabase values and server-only document-worker values used by the live Railway web service.
+- configure the same browser-safe Supabase values and server-only document-worker values used by the live Railway web service,
+- select a runtime region appropriate for Bangladesh/Supabase Mumbai rather than defaulting to US East when region choice is available.
 
 The connected Vercel management surface available during the initial deployment could inspect projects but could not create a new Git-linked project or write its environment variables. Railway therefore provides the initial live web deployment without changing the application's Vercel-compatible architecture.
 
@@ -115,7 +123,7 @@ GitHub Actions verifies:
 - TypeScript compile
 - Docker image build with LibreOffice/Poppler
 
-Railway services track GitHub `main` for automatic production deploys.
+Railway services track GitHub `main` for automatic production deploys. If Railway does not pick up a new web commit after a configuration/region migration, explicitly deploy the current `main` commit and verify the deployment SHA rather than assuming source synchronization.
 
 ## Rollback
 
