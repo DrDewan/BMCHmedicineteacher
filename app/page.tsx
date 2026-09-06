@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { CategoryTile } from "@/components/category-tile";
 import { categories } from "@/lib/categories";
+import { requireActiveProfile } from "@/lib/auth";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const profile = await requireActiveProfile();
+  const canEdit = profile.role === "admin" || profile.role === "editor";
+
   return (
     <main>
       <section className="pb-6 pt-4 sm:pb-7 sm:pt-6">
@@ -14,6 +18,9 @@ export default function HomePage() {
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[var(--muted)] sm:text-base">
           Cases, teaching resources and clinical reference material designed for fast registrar-led teaching.
+        </p>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          Signed in as <span className="font-semibold text-[var(--foreground)]">{profile.full_name || "BMCH user"}</span> · {profile.role}
         </p>
       </section>
 
@@ -41,12 +48,21 @@ export default function HomePage() {
       </section>
 
       <section className="mt-8 flex flex-wrap gap-2 border-t border-[var(--line)] pt-6 text-sm">
-        <Link href="/upload" className="rounded-xl bg-[var(--accent)] px-4 py-2.5 font-semibold text-white">
-          Upload Resource
-        </Link>
-        <Link href="/presentations" className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 font-semibold text-[var(--foreground)]">
-          Build Presentation
-        </Link>
+        {canEdit ? (
+          <>
+            <Link href="/upload" className="rounded-xl bg-[var(--accent)] px-4 py-2.5 font-semibold text-white">
+              Upload Resource
+            </Link>
+            <Link href="/presentations" className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 font-semibold text-[var(--foreground)]">
+              Build Presentation
+            </Link>
+          </>
+        ) : null}
+        <form action="/auth/signout" method="post">
+          <button className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 font-semibold text-[var(--muted)]">
+            Sign out
+          </button>
+        </form>
       </section>
     </main>
   );
