@@ -88,10 +88,6 @@ export function ClinicalCaseViewer({ title, content, compact = false }: { title:
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
-    setRevealedCount((value) => Math.min(Math.max(value, 1), Math.max(stages.length, 1)));
-  }, [stages.length]);
-
-  useEffect(() => {
     function onFullscreen() {
       setFullscreen(document.fullscreenElement === shellRef.current);
     }
@@ -123,7 +119,8 @@ export function ClinicalCaseViewer({ title, content, compact = false }: { title:
     return <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white p-8 text-center text-sm text-[var(--muted)]">No visible case stages yet.</div>;
   }
 
-  const visible = compact ? stages : stages.slice(0, revealedCount);
+  const safeRevealedCount = Math.min(Math.max(revealedCount, 1), stages.length);
+  const visible = compact ? stages : stages.slice(0, safeRevealedCount);
 
   async function toggleFullscreen() {
     if (!shellRef.current || compact) return;
@@ -137,11 +134,11 @@ export function ClinicalCaseViewer({ title, content, compact = false }: { title:
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[#10191d] px-4 py-3 text-white">
           <div className="min-w-0">
             <p className="truncate text-sm font-bold">{title}</p>
-            <p className="text-[11px] text-white/60">Revealed {Math.min(revealedCount, stages.length)} of {stages.length} stages</p>
+            <p className="text-[11px] text-white/60">Revealed {safeRevealedCount} of {stages.length} stages</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setRevealedCount((value) => Math.max(1, value - 1))} disabled={revealedCount <= 1} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-30">Previous</button>
-            <button type="button" onClick={() => setRevealedCount((value) => Math.min(stages.length, value + 1))} disabled={revealedCount >= stages.length} className="rounded-lg bg-[#2e8d87] px-3 py-2 text-xs font-semibold disabled:opacity-30">Reveal next</button>
+            <button type="button" onClick={() => setRevealedCount((value) => Math.max(1, value - 1))} disabled={safeRevealedCount <= 1} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-30">Previous</button>
+            <button type="button" onClick={() => setRevealedCount((value) => Math.min(stages.length, value + 1))} disabled={safeRevealedCount >= stages.length} className="rounded-lg bg-[#2e8d87] px-3 py-2 text-xs font-semibold disabled:opacity-30">Reveal next</button>
             <button type="button" onClick={() => setRevealedCount(stages.length)} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold">Show all</button>
             <button type="button" onClick={() => setRevealedCount(1)} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold">Reset</button>
             <button type="button" onClick={toggleFullscreen} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold">{fullscreen ? "Exit full screen" : "Full screen"}</button>
