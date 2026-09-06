@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { slideToHtml, type NativeSlide } from "@/lib/authoring";
 
 export type StarterStructuredContent = {
   starter_key?: string;
   prototype_source?: string;
+  native_kind?: "teaching_material";
   subtitle?: string | null;
   tags?: string[];
   body_html?: string;
   slides_html?: string[];
+  slides?: NativeSlide[];
   image_url?: string | null;
   source_url?: string | null;
   credit?: string | null;
@@ -57,8 +60,11 @@ function TeachingDeck({ title, content }: { title: string; content: StarterStruc
     const intro = `<div class="deck-intro"><p class="deck-kicker">BMCH Medicine Teaching</p><h2>${title}</h2>${
       content.subtitle ? `<p>${content.subtitle}</p>` : ""
     }</div>`;
-    return [intro, ...(content.slides_html ?? [])];
-  }, [content.slides_html, content.subtitle, title]);
+    const authoredSlides = content.slides?.length
+      ? content.slides.map(slideToHtml)
+      : (content.slides_html ?? []);
+    return [intro, ...authoredSlides];
+  }, [content.slides, content.slides_html, content.subtitle, title]);
   const [index, setIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -99,40 +105,24 @@ function TeachingDeck({ title, content }: { title: string; content: StarterStruc
     <div ref={viewerRef} className={`deck-shell ${isFullscreen ? "deck-fullscreen" : ""}`}>
       <div className="deck-toolbar">
         <div className="flex gap-2">
-          <button onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={index === 0} className="viewer-btn">
-            ‹
-          </button>
-          <button onClick={() => setIndex((v) => Math.min(slides.length - 1, v + 1))} disabled={index === slides.length - 1} className="viewer-btn">
-            ›
-          </button>
+          <button onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={index === 0} className="viewer-btn">‹</button>
+          <button onClick={() => setIndex((v) => Math.min(slides.length - 1, v + 1))} disabled={index === slides.length - 1} className="viewer-btn">›</button>
         </div>
         <div className="min-w-0 text-center">
           <p className="truncate text-sm font-bold">{title}</p>
           <p className="text-[11px] text-white/60">Slide {index + 1} of {slides.length}</p>
         </div>
-        <button onClick={toggleFullscreen} className="viewer-btn viewer-btn-primary">
-          {isFullscreen ? "Exit" : "Full screen"}
-        </button>
+        <button onClick={toggleFullscreen} className="viewer-btn viewer-btn-primary">{isFullscreen ? "Exit" : "Full screen"}</button>
       </div>
       <div className="h-1 bg-[#2d373e]"><div className="h-full bg-[#3fa39d]" style={{ width: `${((index + 1) / slides.length) * 100}%` }} /></div>
-      <div className="deck-stage">
-        <div className="deck-slide prototype-content" dangerouslySetInnerHTML={{ __html: cleanTrustedHtml(slides[index]) }} />
-      </div>
+      <div className="deck-stage"><div className="deck-slide prototype-content" dangerouslySetInnerHTML={{ __html: cleanTrustedHtml(slides[index]) }} /></div>
       <div className="deck-hint">← / → navigate · Space next · F full screen</div>
     </div>
   );
 }
 
-export function StarterResourceViewer({
-  title,
-  resourceType,
-  content,
-}: {
-  title: string;
-  resourceType: string;
-  content: StarterStructuredContent;
-}) {
-  if (resourceType === "presentation" && content.slides_html?.length) {
+export function StarterResourceViewer({ title, resourceType, content }: { title: string; resourceType: string; content: StarterStructuredContent }) {
+  if (resourceType === "presentation" && (content.slides?.length || content.slides_html?.length)) {
     return <TeachingDeck title={title} content={content} />;
   }
 
@@ -152,7 +142,6 @@ export function StarterResourceViewer({
           ) : null}
         </div>
       ) : null}
-
       {content.body_html ? <PrototypeHtml html={content.body_html} /> : null}
       <TagList tags={content.tags} />
     </div>
