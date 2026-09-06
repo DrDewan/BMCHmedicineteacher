@@ -50,14 +50,29 @@ export default async function ResourceViewerPage({
   const previewPages = (
     await Promise.all(
       (pageRows ?? []).map(async (page) => {
-        const path = page.image_path || page.thumbnail_path;
-        if (!path) return null;
-        const { data } = await supabase.storage.from("bmch-resources").createSignedUrl(path, 10 * 60);
-        if (!data?.signedUrl) return null;
-        return { pageNumber: page.page_number, imageUrl: data.signedUrl };
+        const imagePath = page.image_path || page.thumbnail_path;
+        const thumbnailPath = page.thumbnail_path || page.image_path;
+        if (!imagePath) return null;
+
+        const [{ data: imageData }, { data: thumbData }] = await Promise.all([
+          supabase.storage.from("bmch-resources").createSignedUrl(imagePath, 10 * 60),
+          thumbnailPath
+            ? supabase.storage.from("bmch-resources").createSignedUrl(thumbnailPath, 10 * 60)
+            : Promise.resolve({ data: null }),
+        ]);
+
+        if (!imageData?.signedUrl) return null;
+        return {
+          pageNumber: page.page_number,
+          imageUrl: imageData.signedUrl,
+          thumbnailUrl: thumbData?.signedUrl ?? null,
+        };
       }),
     )
-  ).filter((page): page is { pageNumber: number; imageUrl: string } => Boolean(page));
+  ).filter(
+    (page): page is { pageNumber: number; imageUrl: string; thumbnailUrl: string | null } =>
+      Boolean(page),
+  );
 
   let kind: "pdf" | "image" | "slides" | "pending" = "pending";
   let fileUrl: string | null = null;
