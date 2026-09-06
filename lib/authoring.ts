@@ -19,9 +19,14 @@ export type NativeSlide = {
 };
 
 export type TeachingMaterialContent = {
+  schema_version?: 1;
   native_kind?: "teaching_material";
   subtitle?: string | null;
   tags?: string[];
+  topic?: string;
+  subtopic?: string;
+  audience?: string;
+  difficulty?: string;
   slides?: NativeSlide[];
   slides_html?: string[];
   starter_key?: string;
@@ -56,13 +61,14 @@ export function createSlide(type: NativeSlideType): NativeSlide {
 
 export function coerceTeachingMaterial(value: unknown): TeachingMaterialContent {
   if (!value || typeof value !== "object") {
-    return { native_kind: "teaching_material", subtitle: "", tags: [], slides: [] };
+    return { schema_version: 1, native_kind: "teaching_material", subtitle: "", tags: [], slides: [] };
   }
 
   const content = value as TeachingMaterialContent;
   if (Array.isArray(content.slides) && content.slides.length > 0) {
     return {
       ...content,
+      schema_version: 1,
       native_kind: "teaching_material",
       tags: Array.isArray(content.tags) ? content.tags : [],
     };
@@ -71,6 +77,7 @@ export function coerceTeachingMaterial(value: unknown): TeachingMaterialContent 
   if (Array.isArray(content.slides_html) && content.slides_html.length > 0) {
     return {
       ...content,
+      schema_version: 1,
       native_kind: "teaching_material",
       tags: Array.isArray(content.tags) ? content.tags : [],
       slides: content.slides_html.map((html, index) => ({
@@ -84,6 +91,7 @@ export function coerceTeachingMaterial(value: unknown): TeachingMaterialContent 
 
   return {
     ...content,
+    schema_version: 1,
     native_kind: "teaching_material",
     tags: Array.isArray(content.tags) ? content.tags : [],
     slides: [],

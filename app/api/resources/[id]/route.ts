@@ -3,42 +3,25 @@ import { z } from "zod";
 import { editableResourceMetadataSchema, mergeEditableMetadata } from "@/lib/resource-authoring";
 import { AuthoringHttpError, requireAuthoringContext } from "@/lib/resource-authoring-server";
 
-const slideSchema = z.object({
-  id: z.string().min(1),
-  type: z.enum(["title", "objectives", "content", "case", "investigation", "question", "summary", "legacy"]),
-  title: z.string(),
-  body: z.string().optional(),
-  bullets: z.array(z.string()).optional(),
-  answer: z.string().optional(),
-  html: z.string().optional(),
-});
-
 const bodySchema = z.object({
   metadata: editableResourceMetadataSchema,
   expectedUpdatedAt: z.string().min(1),
-  content: z.object({
-    schema_version: z.literal(1),
-    native_kind: z.literal("teaching_material"),
-    subtitle: z.string().nullable().optional(),
-    slides: z.array(slideSchema).max(100),
-  }).passthrough(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const parsed = bodySchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: "Invalid content", details: parsed.error.flatten() }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: "Invalid metadata", details: parsed.error.flatten() }, { status: 400 });
 
     const { supabase } = await requireAuthoringContext();
     const { id } = await params;
     const [{ data: current }, { data: category }] = await Promise.all([
-      supabase.from("resources").select("id, updated_at, resource_type").eq("id", id).is("deleted_at", null).single(),
+      supabase.from("resources").select("id, updated_at, structured_content").eq("id", id).single(),
       supabase.from("resource_categories").select("id").eq("id", parsed.data.metadata.categoryId).eq("is_active", true).single(),
     ]);
 
     if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (!category) return NextResponse.json({ error: "Invalid category" }, { status: 400 });
-    if (current.resource_type !== "presentation") return NextResponse.json({ error: "Not a teaching material" }, { status: 400 });
     if (current.updated_at !== parsed.data.expectedUpdatedAt) {
       return NextResponse.json({ error: "Resource changed elsewhere", updatedAt: current.updated_at }, { status: 409 });
     }
@@ -50,7 +33,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         description: parsed.data.metadata.description || null,
         category_id: parsed.data.metadata.categoryId,
         visibility: parsed.data.metadata.visibility,
-        structured_content: mergeEditableMetadata(parsed.data.content, parsed.data.metadata),
+        structured_content: mergeEditableMetadata(current.structured_content, parsed.data.metadata),
       })
       .eq("id", id)
       .eq("updated_at", parsed.data.expectedUpdatedAt)

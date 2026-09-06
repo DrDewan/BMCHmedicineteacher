@@ -1,18 +1,27 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { requireActiveProfile } from "@/lib/auth";
 import { createSlide } from "@/lib/authoring";
 import { createClient } from "@/lib/supabase/server";
+
+const createSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  subtitle: z.string().trim().max(300),
+});
 
 export async function createTeachingMaterial(formData: FormData) {
   const profile = await requireActiveProfile();
   if (profile.role !== "admin" && profile.role !== "editor") redirect("/");
 
-  const title = String(formData.get("title") ?? "").trim();
-  const subtitle = String(formData.get("subtitle") ?? "").trim();
-  if (!title) redirect("/create/teaching-material?error=title");
+  const parsed = createSchema.safeParse({
+    title: formData.get("title"),
+    subtitle: formData.get("subtitle") ?? "",
+  });
+  if (!parsed.success) redirect("/create/teaching-material?error=title");
 
+  const { title, subtitle } = parsed.data;
   const supabase = await createClient();
   const { data: category } = await supabase
     .from("resource_categories")
@@ -37,6 +46,7 @@ export async function createTeachingMaterial(formData: FormData) {
       visibility: "registrars",
       status: "draft",
       structured_content: {
+        schema_version: 1,
         native_kind: "teaching_material",
         subtitle,
         tags: [],

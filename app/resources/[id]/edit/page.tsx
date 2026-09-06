@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { ResourceMetadataOnlyEditor } from "@/components/resource-metadata-only-editor";
 import { TeachingMaterialEditor } from "@/components/teaching-material-editor";
 import { requireActiveProfile } from "@/lib/auth";
+import { coerceResourceEditorMetadata, type ResourceCategoryOption } from "@/lib/resource-authoring";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function EditResourcePage({ params }: { params: Promise<{ id: string }> }) {
@@ -9,22 +11,44 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
 
   const { id } = await params;
   const supabase = await createClient();
-  const { data: resource, error } = await supabase
-    .from("resources")
-    .select("id, title, description, resource_type, structured_content, updated_at")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .single();
+  const [{ data: resource, error }, { data: dbCategories }] = await Promise.all([
+    supabase
+      .from("resources")
+      .select("id, title, description, category_id, resource_type, structured_content, visibility, status, current_version_id, updated_at")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single(),
+    supabase.from("resource_categories").select("id, slug, name").eq("is_active", true).order("sort_order"),
+  ]);
 
-  if (error || !resource || resource.resource_type !== "presentation") notFound();
+  if (error || !resource) notFound();
+  const categories = (dbCategories ?? []) as ResourceCategoryOption[];
+  if (!categories.length) notFound();
+  const initialMetadata = coerceResourceEditorMetadata(resource);
+
+  if (resource.resource_type === "presentation") {
+    return (
+      <TeachingMaterialEditor
+        resourceId={resource.id}
+        initialMetadata={initialMetadata}
+        initialUpdatedAt={resource.updated_at}
+        initialContent={resource.structured_content}
+        categories={categories}
+        role={profile.role}
+      />
+    );
+  }
+
+  if (resource.current_version_id) notFound();
 
   return (
-    <TeachingMaterialEditor
+    <ResourceMetadataOnlyEditor
       resourceId={resource.id}
-      initialTitle={resource.title}
-      initialDescription={resource.description}
+      resourceType={resource.resource_type}
+      initialMetadata={initialMetadata}
       initialUpdatedAt={resource.updated_at}
-      initialContent={resource.structured_content}
+      categories={categories}
+      role={profile.role}
     />
   );
 }

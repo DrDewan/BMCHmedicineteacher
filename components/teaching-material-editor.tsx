@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { ResourceActions } from "@/components/resource-actions";
+import { ResourceMetadataEditor } from "@/components/resource-metadata-editor";
+import { useResourceAutosave } from "@/components/use-resource-autosave";
 import {
   coerceTeachingMaterial,
   createSlide,
@@ -10,13 +13,15 @@ import {
   type NativeSlideType,
   type TeachingMaterialContent,
 } from "@/lib/authoring";
+import { editableMetadataFromEditor, type ResourceCategoryOption, type ResourceEditorMetadata, type ResourceStatus } from "@/lib/resource-authoring";
 
 type Props = {
   resourceId: string;
-  initialTitle: string;
-  initialDescription: string | null;
+  initialMetadata: ResourceEditorMetadata;
   initialUpdatedAt: string;
   initialContent: unknown;
+  categories: ResourceCategoryOption[];
+  role: "admin" | "editor";
 };
 
 const slideTypes: { value: NativeSlideType; label: string }[] = [
@@ -37,70 +42,29 @@ function cloneSlide(slide: NativeSlide): NativeSlide {
   };
 }
 
-export function TeachingMaterialEditor({
-  resourceId,
-  initialTitle,
-  initialDescription,
-  initialUpdatedAt,
-  initialContent,
-}: Props) {
+export function TeachingMaterialEditor({ resourceId, initialMetadata, initialUpdatedAt, initialContent, categories, role }: Props) {
   const coerced = useMemo(() => coerceTeachingMaterial(initialContent), [initialContent]);
-  const [title, setTitle] = useState(initialTitle);
-  const [description, setDescription] = useState(initialDescription ?? "");
+  const [metadata, setMetadata] = useState(initialMetadata);
   const [subtitle, setSubtitle] = useState(coerced.subtitle ?? "");
-  const [tagsText, setTagsText] = useState((coerced.tags ?? []).join(", "));
   const [slides, setSlides] = useState<NativeSlide[]>(coerced.slides ?? []);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [status, setStatus] = useState<"saved" | "saving" | "error" | "conflict">("saved");
-  const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [addType, setAddType] = useState<NativeSlideType>("content");
-  const lastSavedRef = useRef("");
 
   const selected = slides[selectedIndex] ?? null;
   const payload = useMemo(() => {
     const content: TeachingMaterialContent = {
       ...coerced,
+      schema_version: 1,
       native_kind: "teaching_material",
       subtitle,
-      tags: tagsText.split(",").map((tag) => tag.trim()).filter(Boolean),
       slides,
       slides_html: undefined,
     };
-    return { title, description, content };
-  }, [coerced, description, slides, subtitle, tagsText, title]);
+    return { metadata: editableMetadataFromEditor(metadata), content };
+  }, [coerced, metadata, slides, subtitle]);
 
-  useEffect(() => {
-    if (!lastSavedRef.current) {
-      lastSavedRef.current = JSON.stringify(payload);
-      return;
-    }
-    const serialised = JSON.stringify(payload);
-    if (serialised === lastSavedRef.current) return;
-
-    setStatus("saving");
-    const timeout = window.setTimeout(async () => {
-      try {
-        const response = await fetch(`/api/resources/${resourceId}/teaching-material`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ ...payload, expectedUpdatedAt: updatedAt }),
-        });
-        if (response.status === 409) {
-          setStatus("conflict");
-          return;
-        }
-        if (!response.ok) throw new Error("Save failed");
-        const result = (await response.json()) as { updatedAt: string };
-        setUpdatedAt(result.updatedAt);
-        lastSavedRef.current = serialised;
-        setStatus("saved");
-      } catch {
-        setStatus("error");
-      }
-    }, 850);
-
-    return () => window.clearTimeout(timeout);
-  }, [payload, resourceId, updatedAt]);
+  const autosave = useResourceAutosave({ url: `/api/resources/${resourceId}/teaching-material`, payload, initialUpdatedAt });
+  const updateStatus = (status: ResourceStatus) => setMetadata((current) => ({ ...current, status }));
 
   function updateSlide(patch: Partial<NativeSlide>) {
     setSlides((items) => items.map((slide, index) => index === selectedIndex ? { ...slide, ...patch } : slide));
@@ -149,22 +113,35 @@ export function TeachingMaterialEditor({
           <Link href={`/resources/${resourceId}`} className="text-sm font-semibold text-[var(--accent)]">← Back to resource</Link>
           <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.035em]">Edit Teaching Material</h1>
         </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`rounded-full px-3 py-1.5 font-semibold ${status === "saved" ? "bg-[#eaf4f3] text-[var(--accent)]" : status === "saving" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
-            {status === "saved" ? "Saved" : status === "saving" ? "Saving…" : status === "conflict" ? "Newer version exists — reload" : "Save failed"}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className={`rounded-full px-3 py-1.5 font-semibold ${autosave.status === "saved" ? "bg-[#eaf4f3] text-[var(--accent)]" : autosave.status === "saving" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+            {autosave.status === "saved" ? "Saved" : autosave.status === "saving" ? "Saving…" : autosave.status === "conflict" ? "Newer version exists — reload" : "Save failed"}
           </span>
+          {autosave.status === "error" ? <button type="button" onClick={autosave.retry} className="rounded-lg border border-[var(--line)] px-3 py-1.5 font-semibold">Retry</button> : null}
           <Link href={`/resources/${resourceId}`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">Preview / Present</Link>
         </div>
       </div>
 
-      <section className="mb-5 grid gap-3 rounded-[18px] border border-[var(--line)] bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs font-semibold text-[var(--muted)]">Title<input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
-        <label className="text-xs font-semibold text-[var(--muted)]">Subtitle<input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
-        <label className="text-xs font-semibold text-[var(--muted)]">Tags<input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Respiratory, Emergency" className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
-        <label className="text-xs font-semibold text-[var(--muted)]">Description<input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
+      <ResourceMetadataEditor value={metadata} categories={categories} onChange={setMetadata} />
+      <section className="mt-3 rounded-[18px] border border-[var(--line)] bg-white p-4">
+        <label className="block text-xs font-semibold text-[var(--muted)]">Teaching subtitle
+          <input value={subtitle} maxLength={300} onChange={(event) => setSubtitle(event.target.value)} placeholder="Final Year MBBS · Respiratory Medicine" className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" />
+        </label>
       </section>
 
-      <section className="grid min-h-[640px] gap-4 lg:grid-cols-[220px_minmax(0,1fr)_330px]">
+      <div className="mt-3">
+        <ResourceActions
+          resourceId={resourceId}
+          initialStatus={metadata.status}
+          initialUpdatedAt={autosave.updatedAt}
+          isAdmin={role === "admin"}
+          disabled={autosave.status !== "saved"}
+          onUpdatedAt={autosave.adoptUpdatedAt}
+          onStatusChange={updateStatus}
+        />
+      </div>
+
+      <section className="mt-5 grid min-h-[640px] gap-4 lg:grid-cols-[220px_minmax(0,1fr)_330px]">
         <aside className="rounded-[18px] border border-[var(--line)] bg-white p-3">
           <div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">Slides</p><span className="text-xs text-[var(--muted)]">{slides.length}</span></div>
           <div className="space-y-2">
@@ -176,7 +153,7 @@ export function TeachingMaterialEditor({
             ))}
           </div>
           <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-3">
-            <select value={addType} onChange={(e) => setAddType(e.target.value as NativeSlideType)} className="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-xs">{slideTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+            <select value={addType} onChange={(event) => setAddType(event.target.value as NativeSlideType)} className="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-xs">{slideTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             <button type="button" onClick={addSlide} className="w-full rounded-xl bg-[var(--accent)] px-3 py-2.5 text-sm font-semibold text-white">+ Add slide</button>
           </div>
         </aside>
@@ -215,14 +192,14 @@ export function TeachingMaterialEditor({
                 </div>
               ) : (
                 <>
-                  <label className="block text-xs font-semibold text-[var(--muted)]">Slide type<select value={selected.type} onChange={(e) => updateSlide({ type: e.target.value as NativeSlideType })} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)]">{slideTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-                  <label className="block text-xs font-semibold text-[var(--muted)]">Heading<input value={selected.title} onChange={(e) => updateSlide({ title: e.target.value })} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
+                  <label className="block text-xs font-semibold text-[var(--muted)]">Slide type<select value={selected.type} onChange={(event) => updateSlide({ type: event.target.value as NativeSlideType })} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)]">{slideTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+                  <label className="block text-xs font-semibold text-[var(--muted)]">Heading<input value={selected.title} onChange={(event) => updateSlide({ title: event.target.value })} className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
                   {selected.type === "objectives" || selected.type === "summary" ? (
-                    <label className="block text-xs font-semibold text-[var(--muted)]">Bullet points<textarea value={(selected.bullets ?? []).join("\n")} onChange={(e) => updateSlide({ bullets: e.target.value.split("\n") })} rows={10} placeholder="One point per line" className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
+                    <label className="block text-xs font-semibold text-[var(--muted)]">Bullet points<textarea value={(selected.bullets ?? []).join("\n")} onChange={(event) => updateSlide({ bullets: event.target.value.split("\n") })} rows={10} placeholder="One point per line" className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
                   ) : (
-                    <label className="block text-xs font-semibold text-[var(--muted)]">Content<textarea value={selected.body ?? ""} onChange={(e) => updateSlide({ body: e.target.value })} rows={10} className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
+                    <label className="block text-xs font-semibold text-[var(--muted)]">Content<textarea value={selected.body ?? ""} onChange={(event) => updateSlide({ body: event.target.value })} rows={10} className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label>
                   )}
-                  {selected.type === "question" ? <label className="block text-xs font-semibold text-[var(--muted)]">Answer<textarea value={selected.answer ?? ""} onChange={(e) => updateSlide({ answer: e.target.value })} rows={6} className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label> : null}
+                  {selected.type === "question" ? <label className="block text-xs font-semibold text-[var(--muted)]">Answer<textarea value={selected.answer ?? ""} onChange={(event) => updateSlide({ answer: event.target.value })} rows={6} className="mt-1.5 w-full resize-y rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm leading-6 text-[var(--foreground)] outline-none focus:border-[var(--accent)]" /></label> : null}
                 </>
               )}
             </div>
