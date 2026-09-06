@@ -11,18 +11,18 @@ const execFileAsync = promisify(execFile);
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
-const PORT = Number(process.env.PORT || 8080);
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-const DOCUMENT_WORKER_SECRET = process.env.DOCUMENT_WORKER_SECRET;
-const DOCUMENT_BRIDGE_URL = process.env.DOCUMENT_BRIDGE_URL;
-const STORAGE_BUCKET = process.env.STORAGE_BUCKET || "bmch-resources";
-
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY || !DOCUMENT_WORKER_SECRET || !DOCUMENT_BRIDGE_URL) {
-  throw new Error(
-    "SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, DOCUMENT_WORKER_SECRET and DOCUMENT_BRIDGE_URL must be configured.",
-  );
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be configured.`);
+  return value;
 }
+
+const PORT = Number(process.env.PORT || 8080);
+const SUPABASE_URL = requiredEnv("SUPABASE_URL");
+const SUPABASE_PUBLISHABLE_KEY = requiredEnv("SUPABASE_PUBLISHABLE_KEY");
+const DOCUMENT_WORKER_SECRET = requiredEnv("DOCUMENT_WORKER_SECRET");
+const DOCUMENT_BRIDGE_URL = requiredEnv("DOCUMENT_BRIDGE_URL");
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET || "bmch-resources";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
