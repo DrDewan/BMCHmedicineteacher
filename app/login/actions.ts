@@ -5,7 +5,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3)
+    .max(64)
+    .regex(/^[a-z0-9._-]+$/),
   password: z.string().min(6),
   next: z.string().optional(),
 });
@@ -17,9 +23,13 @@ function safeNextPath(value?: string) {
   return value;
 }
 
+function usernameToInternalEmail(username: string) {
+  return `${username}@bmch.internal`;
+}
+
 export async function login(formData: FormData) {
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    username: formData.get("username"),
     password: formData.get("password"),
     next: formData.get("next") || undefined,
   });
@@ -27,17 +37,17 @@ export async function login(formData: FormData) {
   const nextPath = safeNextPath(parsed.success ? parsed.data.next : undefined);
 
   if (!parsed.success) {
-    redirect(`/login?error=${encodeURIComponent("Enter a valid email and password.")}`);
+    redirect(`/login?error=${encodeURIComponent("Enter a valid username and password.")}`);
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
+    email: usernameToInternalEmail(parsed.data.username),
     password: parsed.data.password,
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent("Invalid email or password.")}`);
+    redirect(`/login?error=${encodeURIComponent("Invalid username or password.")}`);
   }
 
   const { data: claimsData } = await supabase.auth.getClaims();
