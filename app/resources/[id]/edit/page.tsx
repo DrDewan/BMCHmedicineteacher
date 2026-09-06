@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ClinicalCaseEditor } from "@/components/clinical-case-editor";
 import { ResourceMetadataOnlyEditor } from "@/components/resource-metadata-only-editor";
 import { TeachingMaterialEditor } from "@/components/teaching-material-editor";
 import { requireActiveProfile } from "@/lib/auth";
@@ -29,6 +30,19 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
   if (resource.resource_type === "presentation") {
     return (
       <TeachingMaterialEditor
+        resourceId={resource.id}
+        initialMetadata={initialMetadata}
+        initialUpdatedAt={resource.updated_at}
+        initialContent={resource.structured_content}
+        categories={categories}
+        role={profile.role}
+      />
+    );
+  }
+
+  if (resource.resource_type === "case") {
+    return (
+      <ClinicalCaseEditor
         resourceId={resource.id}
         initialMetadata={initialMetadata}
         initialUpdatedAt={resource.updated_at}
