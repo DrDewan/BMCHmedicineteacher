@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DocumentProcessingControls } from "@/components/document-processing-controls";
 import { StarterResourceViewer, type StarterStructuredContent } from "@/components/prototype-content";
 import { requireActiveProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+
+const OFFICE_MIME_TYPES = new Set([
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await requireActiveProfile();
@@ -33,6 +41,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   );
   const canEdit = profile.role === "admin" || profile.role === "editor";
   const canEditTeachingMaterial = canEdit && resource.resource_type === "presentation";
+  const isOfficeDocument = Boolean(version?.mime_type && OFFICE_MIME_TYPES.has(version.mime_type));
 
   let signedUrl: string | null = null;
   if (version?.storage_path) {
@@ -75,12 +84,28 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               <p className="mt-1 text-sm text-[var(--muted)]">{version?.original_filename || "No file attached"}{fileSize ? ` · ${fileSize}` : ""}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {version ? <Link href={`/resources/${resource.id}/view`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">Open teaching viewer</Link> : null}
+              {version && !isOfficeDocument ? <Link href={`/resources/${resource.id}/view`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">Open teaching viewer</Link> : null}
               {signedUrl ? <a href={signedUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold">Open original</a> : null}
             </div>
           </div>
-          {version?.processing_error ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Processing error: {version.processing_error}</div> : null}
-          <div className="mt-6 rounded-2xl border border-[#d9e4e6] bg-[#f8fafb] p-5 text-sm leading-6 text-[var(--muted)]">PDFs open in the teaching viewer. Images support zoom/fullscreen. PowerPoint and Word use generated page previews once document processing is available.</div>
+
+          {version && isOfficeDocument ? (
+            <div className="mt-5 border-t border-[var(--line)] pt-5">
+              <DocumentProcessingControls
+                resourceId={resource.id}
+                processingStatus={version.processing_status}
+                processingError={version.processing_error}
+                canEdit={canEdit}
+              />
+            </div>
+          ) : null}
+
+          {version?.processing_error && !isOfficeDocument ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Processing error: {version.processing_error}</div> : null}
+          <div className="mt-6 rounded-2xl border border-[#d9e4e6] bg-[#f8fafb] p-5 text-sm leading-6 text-[var(--muted)]">
+            {isOfficeDocument
+              ? "PowerPoint and Word files are converted into a private PDF plus individual teaching-slide images and thumbnails. The original Office file is always preserved."
+              : "PDFs open in the teaching viewer. Images support zoom and fullscreen."}
+          </div>
         </section>
       )}
 
