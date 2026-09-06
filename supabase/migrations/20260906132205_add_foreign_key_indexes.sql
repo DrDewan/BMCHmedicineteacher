@@ -1,0 +1,15 @@
+create index if not exists ai_jobs_requested_by_idx on public.ai_jobs(requested_by);
+create index if not exists audit_logs_actor_idx on public.audit_logs(actor_id);
+create index if not exists practice_session_questions_question_idx on public.practice_session_questions(question_id);
+create index if not exists presentation_slides_source_resource_idx on public.presentation_slides(source_resource_id);
+create index if not exists presentations_owner_idx on public.presentations(owner_id) where deleted_at is null;
+create index if not exists question_sources_question_idx on public.question_sources(question_id);
+create index if not exists question_sources_resource_idx on public.question_sources(resource_id);
+create index if not exists question_sources_resource_version_idx on public.question_sources(resource_version_id);
+create index if not exists question_sources_presentation_idx on public.question_sources(presentation_id);
+create index if not exists question_sources_slide_idx on public.question_sources(slide_id);
+create index if not exists questions_created_by_idx on public.questions(created_by);
+create index if not exists questions_approved_by_idx on public.questions(approved_by);
+create index if not exists resource_tags_tag_idx on public.resource_tags(tag_id);
+create index if not exists resource_versions_created_by_idx on public.resource_versions(created_by);
+create index if not exists resources_current_version_idx on public.resources(current_version_id);
