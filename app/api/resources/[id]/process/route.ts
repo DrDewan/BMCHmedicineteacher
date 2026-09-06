@@ -44,7 +44,7 @@ export async function POST(
 
   const { data: version } = await supabase
     .from("resource_versions")
-    .select("id, mime_type, processing_status")
+    .select("id, mime_type, original_filename, storage_path, processing_status")
     .eq("id", resource.current_version_id)
     .single();
 
@@ -53,6 +53,10 @@ export async function POST(
       { error: "Only uploaded PowerPoint and Word files require this processing route." },
       { status: 400 },
     );
+  }
+
+  if (!version.storage_path) {
+    return NextResponse.json({ error: "Original file is missing from storage." }, { status: 400 });
   }
 
   if (version.processing_status === "ready") {
@@ -71,6 +75,17 @@ export async function POST(
     );
   }
 
+  const { data: signed, error: signedError } = await supabase.storage
+    .from("bmch-resources")
+    .createSignedUrl(version.storage_path, 30 * 60);
+
+  if (signedError || !signed?.signedUrl) {
+    return NextResponse.json(
+      { error: signedError?.message || "Could not create a temporary download link for the original file." },
+      { status: 500 },
+    );
+  }
+
   try {
     const response = await fetch(`${workerUrl}/process`, {
       method: "POST",
@@ -78,7 +93,13 @@ export async function POST(
         authorization: `Bearer ${workerSecret}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ resourceId, versionId: version.id }),
+      body: JSON.stringify({
+        resourceId,
+        versionId: version.id,
+        originalUrl: signed.signedUrl,
+        mimeType: version.mime_type,
+        originalFilename: version.original_filename,
+      }),
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
