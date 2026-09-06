@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClinicalCaseViewer } from "@/components/clinical-case-viewer";
 import { DocumentProcessingControls } from "@/components/document-processing-controls";
+import { InvestigationViewer } from "@/components/investigation-viewer";
 import { StarterResourceViewer, type StarterStructuredContent } from "@/components/prototype-content";
 import { ResourceActions } from "@/components/resource-actions";
 import { requireActiveProfile } from "@/lib/auth";
 import { clinicalCaseContentSchema } from "@/lib/clinical-case";
+import { investigationContentSchema } from "@/lib/investigation";
 import { resourceStatusSchema } from "@/lib/resource-authoring";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +38,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const content = resource.structured_content as unknown as StarterStructuredContent;
   const nativeCase = resource.resource_type === "case" ? clinicalCaseContentSchema.safeParse(resource.structured_content) : null;
+  const nativeInvestigation = resource.resource_type === "investigation" ? investigationContentSchema.safeParse(resource.structured_content) : null;
   const isStructuredContent = Boolean(
     content?.starter_key ||
     content?.native_kind ||
@@ -58,6 +61,12 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const fileSize = version?.file_size ? (version.file_size >= 1024 * 1024 ? `${(version.file_size / (1024 * 1024)).toFixed(1)} MB` : `${Math.ceil(version.file_size / 1024)} KB`) : null;
 
+  const safetyNote = (
+    <div className="mt-5 rounded-[14px] border border-[#eadfbf] bg-[#fffdf8] px-4 py-3 text-xs leading-5 text-[#6e5a2a]">
+      Teaching material for supervised medical education. Clinical management should follow the patient&apos;s condition, senior clinical judgement and current BMCH/local protocols.
+    </div>
+  );
+
   return (
     <main className="pb-12">
       <Link href={category?.slug ? `/library/${category.slug}` : "/"} className="text-sm font-semibold text-[var(--accent)]">← Back to {category?.name || "library"}</Link>
@@ -79,16 +88,17 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       {nativeCase?.success ? (
         <>
           <ClinicalCaseViewer title={resource.title} content={nativeCase.data} />
-          <div className="mt-5 rounded-[14px] border border-[#eadfbf] bg-[#fffdf8] px-4 py-3 text-xs leading-5 text-[#6e5a2a]">
-            Teaching material for supervised medical education. Clinical management should follow the patient&apos;s condition, senior clinical judgement and current BMCH/local protocols.
-          </div>
+          {safetyNote}
+        </>
+      ) : nativeInvestigation?.success ? (
+        <>
+          <InvestigationViewer title={resource.title} content={nativeInvestigation.data} />
+          {safetyNote}
         </>
       ) : isStructuredContent ? (
         <>
           <StarterResourceViewer title={resource.title} resourceType={resource.resource_type} content={content} />
-          <div className="mt-5 rounded-[14px] border border-[#eadfbf] bg-[#fffdf8] px-4 py-3 text-xs leading-5 text-[#6e5a2a]">
-            Teaching material for supervised medical education. Clinical management should follow the patient&apos;s condition, senior clinical judgement and current BMCH/local protocols.
-          </div>
+          {safetyNote}
         </>
       ) : (
         <section className="rounded-[20px] border border-[var(--line)] bg-white p-6 sm:p-8">
@@ -105,12 +115,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
           {version && isOfficeDocument ? (
             <div className="mt-5 border-t border-[var(--line)] pt-5">
-              <DocumentProcessingControls
-                resourceId={resource.id}
-                processingStatus={version.processing_status}
-                processingError={version.processing_error}
-                canEdit={canEdit}
-              />
+              <DocumentProcessingControls resourceId={resource.id} processingStatus={version.processing_status} processingError={version.processing_error} canEdit={canEdit} />
             </div>
           ) : null}
 
@@ -125,12 +130,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
       {canManageNative ? (
         <div className="mt-5">
-          <ResourceActions
-            resourceId={resource.id}
-            initialStatus={lifecycleStatus}
-            initialUpdatedAt={resource.updated_at}
-            isAdmin={profile.role === "admin"}
-          />
+          <ResourceActions resourceId={resource.id} initialStatus={lifecycleStatus} initialUpdatedAt={resource.updated_at} isAdmin={profile.role === "admin"} />
         </div>
       ) : null}
 
