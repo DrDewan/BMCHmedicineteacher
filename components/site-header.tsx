@@ -18,17 +18,14 @@ export function SiteHeader() {
       </Link>
 
       <nav className="hidden items-center gap-2 md:flex" aria-label="Primary navigation">
-        <Link
-          href="/presentations"
-          className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-white hover:text-[var(--foreground)]"
-        >
+        <Link href="/presentations" className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-white hover:text-[var(--foreground)]">
           Presentations
         </Link>
-        <Link
-          href="/upload"
-          className="rounded-xl border border-[var(--line)] bg-white px-3.5 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:border-[#c8d3d7]"
-        >
-          Upload Resource
+        <Link href="/upload" className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-white hover:text-[var(--foreground)]">
+          Upload
+        </Link>
+        <Link href="/create" className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-95">
+          + Create
         </Link>
       </nav>
     </header>
