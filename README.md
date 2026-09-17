@@ -36,11 +36,17 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 - Supabase PostgreSQL
 - Supabase Auth
 - Supabase Storage
-- Vercel-compatible web hosting (currently Railway production)
+- Vercel-compatible web hosting
 - PDF.js for PDF viewing
-- Containerised document worker for PPTX/DOCX preview generation and extraction
+- Portable containerised document worker for PPTX/DOCX preview generation and extraction
 - PptxGenJS for PowerPoint export
 - AI provider abstraction with OpenAI as the initial provider
+
+### Current hosting note
+
+The standalone Railway **BMCH Medicine Document Worker** project was decommissioned on 18 September 2026 to free limited Railway plan capacity for another active project. The worker source, Dockerfile, Supabase bridge and stored BMCH resources remain intact. New Office-document conversion is unavailable until a replacement worker is deployed.
+
+See [`docs/25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md`](./docs/25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md) for the exact historical configuration, impact and redeployment checklist.
 
 ## Architectural principles
 
@@ -56,7 +62,7 @@ The application is intentionally not a general-purpose LMS. Its core jobs are to
 10. Native BMCH teaching resources must be editable without code or database access.
 11. Uploaded PDF/PPTX/DOCX files remain immutable originals; editing their contents is handled through replacement versions or conversion into BMCH-native material rather than building a full Office editor.
 12. Architecture-changing work must update the documentation in `/docs`.
-13. Keep the interactive web runtime geographically close to both Bangladesh users and Supabase; current production web region is Singapore with Supabase in Mumbai.
+13. Keep interactive infrastructure geographically close to Bangladesh users and Supabase when it is redeployed.
 
 ## Repository documentation
 
@@ -89,6 +95,7 @@ Documents:
 - `22-CLINICAL-CASE-BUILDER.md`
 - `23-INVESTIGATION-BUILDER.md`
 - `24-PROCEDURE-BUILDER.md`
+- `25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md`
 - `PROTOTYPE-MIGRATION.md`
 
 `20-NEXT-IMPLEMENTATION-PLAN.md` is the current execution source of truth for build order, dependencies and increment exit criteria.
@@ -97,7 +104,7 @@ Documents:
 
 ## Current execution order
 
-Completed baseline includes the resource library, authentication, Teaching Material editor, PPTX/DOCX processing foundation, uploaded PowerPoint viewer, starter dataset, production deployment and initial performance work.
+Completed baseline includes the resource library, authentication, Teaching Material editor, PPTX/DOCX processing foundation, uploaded PowerPoint viewer, starter dataset, production deployment work and initial performance work. The document-processing implementation remains in the repository even though its standalone Railway worker is currently offline/decommissioned.
 
 Completed authoring increments:
 
