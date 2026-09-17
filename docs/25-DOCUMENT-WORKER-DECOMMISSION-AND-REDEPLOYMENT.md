@@ -1,18 +1,21 @@
 # Document Worker Decommission and Redeployment
 
 **Decision date:** 18 September 2026  
-**Status:** Railway document-worker deployment decommissioned / project scheduled for deletion  
+**Deletion completed by user:** 18 September 2026  
+**Status:** Railway document-worker project decommissioned; source and recovery instructions preserved  
 **Source code remains:** `services/document-worker/`
 
 ## Why this record exists
 
 The standalone Railway deployment for the BMCH document worker was removed to free limited Railway plan capacity for the ClassOS compute-runtime pilot.
 
-This was an infrastructure-capacity decision, not a decision to remove document conversion from the BMCH Medicine Education product. The worker source code, Dockerfile, Supabase bridge, database schema and private storage design remain in this repository and may be redeployed later.
+This was an infrastructure-capacity decision, not a decision to remove Office-document conversion from BMCH Medicine Education. The worker source code, Dockerfile, Supabase bridge, database schema and private storage design remain in this repository and may be redeployed later.
 
-## Railway deployment being removed
+After the deletion was completed, Railway allowed creation of the separate ClassOS project. This confirms that sufficient provisioning capacity was released. Railway APIs may continue to show the deleted project temporarily; do not interpret a stale listing as an active worker deployment.
 
-Historical deployment details:
+## Deleted Railway deployment
+
+Historical details:
 
 - Railway project: `BMCH Medicine Document Worker`
 - Railway project ID: `81fdcd06-05be-445c-bd77-48c2451fe6e1`
@@ -22,61 +25,60 @@ Historical deployment details:
 - Service ID: `d7bde0aa-1bc7-4a26-806d-1eb0d469fb43`
 - Connected repository: `DrDewan/BMCHmedicineteacher`
 - Branch: `main`
-- Root directory: `services/document-worker`
+- Source root: `services/document-worker`
 - Dockerfile: `services/document-worker/Dockerfile`
 - Historical public domain: `document-worker-production-4a6c.up.railway.app`
-- Historical target port: `8080`
+- Historical port: `8080`
 - Historical region: Railway US East (`iad`)
 - Health check: `/health`
 - Restart policy: maximum 3 retries
 - Watch pattern: `services/document-worker/**`
 
-At decommission time:
+At deletion time:
 
 - the worker was already offline;
 - its latest deployment was failed rather than serving production traffic;
-- there were no attached Railway volumes;
+- there were no Railway volumes;
 - there was no Railway-hosted database;
 - no persistent document data was stored inside Railway.
 
-Therefore deleting the Railway project does **not** delete uploaded originals, generated previews already stored in Supabase, resource metadata, the Supabase Edge Function bridge or the worker source code.
+Therefore the project deletion did **not** delete uploaded originals, existing generated previews in Supabase, resource metadata, the Supabase Edge Function bridge or the worker source code.
 
-## What deletion removes
+## What was removed
 
-Deleting the Railway project removes only Railway-side infrastructure, including:
+Deletion removed Railway-side infrastructure, including:
 
 - the `document-worker` service configuration;
-- deployment history and logs;
-- the Railway-generated public domain;
+- Railway deployment history/logs;
+- Railway-generated domain;
 - Railway environment-variable values;
-- region, health-check and restart configuration.
+- Railway region, health-check and restart configuration.
 
-It does not remove:
+Deletion did not remove:
 
 - `services/document-worker/` from GitHub;
-- `supabase/functions/document-worker-bridge`;
+- `supabase/functions/document-worker-bridge/`;
 - `document_worker_credentials` in Supabase;
-- the `bmch-resources` storage bucket;
-- original or derived resource files already stored in Supabase;
+- the `bmch-resources` private storage bucket;
+- original or derivative resource files already stored in Supabase;
 - `resource_pages` or `resource_versions` records.
 
-## Expected product impact while offline
+## Product impact while the worker is offline
 
 Until a replacement worker is deployed:
 
 - existing uploaded originals remain available according to normal permissions;
-- existing generated previews remain available if their assets already exist;
-- new PPT/PPTX/DOC/DOCX files cannot complete server-side LibreOffice/Poppler conversion;
-- retrying a failed or pending Office preview will fail until `DOCUMENT_WORKER_URL` points to a healthy replacement worker;
-- PDF and image viewing paths that do not require the worker continue to function.
+- already-generated previews remain available when their Supabase assets exist;
+- new PPT/PPTX/DOC/DOCX uploads cannot complete LibreOffice/Poppler conversion;
+- retrying pending/failed Office preview generation will fail until `DOCUMENT_WORKER_URL` points to a healthy replacement;
+- PDF/image paths that do not require the worker continue to function;
+- the UI must not claim conversion succeeded while the worker is unavailable.
 
-The UI must not claim that Office conversion succeeded when the worker is unavailable.
+## Historical environment-variable names
 
-## Historical Railway environment-variable names
+The deleted Railway service used these names. Values were not committed and should not be recovered from repository history.
 
-The deleted Railway service had these variable names. Their values were not committed and must not be reconstructed from source control:
-
-Required:
+Required worker variables:
 
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
@@ -86,16 +88,16 @@ Required:
 Optional:
 
 - `STORAGE_BUCKET` — normally `bmch-resources`
-- `PORT` — normally supplied by the host; local/default worker port is `8080`
+- `PORT` — normally host-supplied; local/default port `8080`
 
-The main web deployment also requires:
+The main web application also requires:
 
 - `DOCUMENT_WORKER_URL`
 - `DOCUMENT_WORKER_SECRET`
 
 ## Redeployment procedure
 
-The worker is portable and may be redeployed to Railway, Render, Fly.io, Google Cloud Run, ECS, a VPS or any Docker-capable host.
+The worker remains portable to Railway, Render, Fly.io, Cloud Run, ECS, a VPS or another Docker-capable host.
 
 ### 1. Create the service
 
@@ -103,56 +105,56 @@ Use:
 
 - repository: `DrDewan/BMCHmedicineteacher`
 - branch: `main`
-- root directory: `services/document-worker`
+- source root: `services/document-worker`
 - Dockerfile: `Dockerfile` relative to that root
 - container port: `8080` unless the host injects `PORT`
 - health endpoint: `/health`
 
 No persistent volume is required.
 
-### 2. Configure worker variables
+### 2. Configure variables
 
-Set the required worker variables listed above. Never place the worker secret or privileged credentials in browser-exposed variables.
+Set the required worker variables above. Never place the worker secret or privileged credentials in browser-exposed variables.
 
 ### 3. Rotate the shared worker secret
 
-A fresh deployment should preferably use a newly generated high-entropy `DOCUMENT_WORKER_SECRET` rather than attempting to recover the deleted Railway value.
+A future deployment should generate a new high-entropy `DOCUMENT_WORKER_SECRET` rather than attempting to recover the deleted Railway value.
 
-The same plaintext secret must be configured in:
+Configure the same plaintext secret in:
 
-1. the new worker service;
+1. the replacement worker;
 2. the main Next.js application's server-only `DOCUMENT_WORKER_SECRET`;
-3. the Supabase credential registry as a SHA-256 hash in `public.document_worker_credentials`.
+3. Supabase's credential registry as a SHA-256 hash in `public.document_worker_credentials`.
 
-The table and verifier are defined in:
+The credential table and verifier are defined in:
 
 `supabase/migrations/20260906153000_document_worker_bridge.sql`
 
-Do not commit the plaintext secret or its environment-file value. Deactivate the previous credential row only after the new worker has passed health and end-to-end conversion tests.
+Never commit the plaintext secret. Deactivate the previous credential row only after the replacement worker passes health and end-to-end conversion tests.
 
 ### 4. Configure the web application
 
 Set:
 
-- `DOCUMENT_WORKER_URL=https://<new-worker-host>`
+- `DOCUMENT_WORKER_URL=https://<replacement-host>`
 - `DOCUMENT_WORKER_SECRET=<same-new-secret>`
 
-Redeploy the web application after changing these server-side variables.
+Redeploy the web application after updating these server-side values.
 
-### 5. Validate before declaring the worker restored
+### 5. Validate before declaring restoration
 
 Required checks:
 
-1. `GET /health` returns HTTP 200 and `{"status":"ok","service":"bmch-document-worker",...}`.
-2. `/process` rejects requests without the correct worker secret.
+1. `GET /health` returns HTTP 200 and identifies `bmch-document-worker`.
+2. `/process` rejects missing/incorrect worker credentials.
 3. Upload one non-sensitive test PPTX.
-4. Confirm status transitions `pending → processing → ready`.
-5. Confirm preview PDF, full slide images and thumbnails appear in private storage.
-6. Confirm `resource_pages` records are created in correct page order.
-7. Confirm extracted text is present where expected.
-8. Confirm the BMCH slide viewer loads the generated preview after refresh.
-9. Confirm a failed conversion preserves the immutable original and records a bounded error.
-10. Remove the test resource after validation if it is not needed.
+4. Confirm `pending → processing → ready`.
+5. Confirm preview PDF, slide images and thumbnails are stored privately.
+6. Confirm ordered `resource_pages` records are created.
+7. Confirm expected extracted text exists.
+8. Confirm the BMCH viewer loads the generated preview.
+9. Confirm failure preserves the immutable original and records a bounded error.
+10. Remove the test resource if it is no longer needed.
 
 ## Related files
 
@@ -165,4 +167,4 @@ Required checks:
 
 ## Future decision rule
 
-Do not recreate this worker merely to restore an old architecture. Redeploy it when Office conversion is again needed for active BMCH use, and choose the host based on current cost, region, maintenance burden and reliability requirements.
+Do not recreate this worker simply to restore the previous hosting diagram. Redeploy it when Office conversion is again needed for active BMCH use, and choose the host based on current cost, region, maintenance burden and reliability requirements.
