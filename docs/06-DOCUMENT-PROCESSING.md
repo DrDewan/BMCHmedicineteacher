@@ -1,7 +1,14 @@
 # Document Processing
 
 ## Goal
+
 Keep original files intact while creating browser-friendly teaching previews and searchable page/slide text.
+
+## Current deployment status
+
+The document-processing implementation is preserved, but the former standalone Railway worker was decommissioned on 18 September 2026. New Office conversions will remain unavailable until a replacement worker is deployed and configured.
+
+Existing originals and previously generated derivatives remain in Supabase. See `docs/25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md` for the historical configuration, impact and redeployment procedure.
 
 ## Implemented pipeline
 
@@ -12,16 +19,18 @@ The original upload is never overwritten.
 ## By file type
 
 ### PDF
+
 Original remains canonical and opens directly in the browser teaching viewer. PDF processing is not currently required before viewing.
 
 ### PPT / PPTX
-Implemented.
+
+Implemented in source code; requires a healthy deployed worker.
 
 1. Original PowerPoint is stored privately in Supabase Storage.
 2. The resource version is created with `processing_status = pending`.
 3. The resource detail page automatically calls the protected processing trigger for authorised editors.
 4. The Next.js route forwards only the resource/version IDs to the document worker using `DOCUMENT_WORKER_SECRET`.
-5. The worker downloads the original with its server-only Supabase secret key.
+5. The worker downloads the original using the signed URL supplied by the server workflow.
 6. Headless LibreOffice converts the file to PDF.
 7. Poppler `pdftoppm` renders full slide PNGs and smaller thumbnails.
 8. `pdftotext` extracts page/slide text.
@@ -31,9 +40,11 @@ Implemented.
 12. The BMCH slide viewer serves signed URLs, previous/next navigation, zoom, fullscreen, keyboard controls and a thumbnail strip.
 
 ### DOC / DOCX
+
 The same LibreOffice/Poppler pipeline is implemented and produces page previews. The primary immediate use case is PowerPoint, but Word documents use the same worker.
 
 ### Image
+
 Original is immediately viewable; no document worker is required.
 
 ## Worker implementation
@@ -46,7 +57,7 @@ Runtime components:
 
 - Node.js 22
 - Express
-- Supabase server client
+- Supabase server client using the publishable key
 - LibreOffice Impress/Common
 - Poppler utilities
 
@@ -54,52 +65,61 @@ Docker image:
 
 `services/document-worker/Dockerfile`
 
-The worker is deliberately separate from the Next.js/Vercel application because LibreOffice and Poppler are heavyweight native binaries.
+The worker is deliberately separate from the Next.js application because LibreOffice and Poppler are heavyweight native binaries.
 
 ## Security
 
 The worker requires:
 
 - `SUPABASE_URL`
-- `SUPABASE_SECRET_KEY`
+- `SUPABASE_PUBLISHABLE_KEY`
 - `DOCUMENT_WORKER_SECRET`
+- `DOCUMENT_BRIDGE_URL`
 
 The web app requires:
 
 - `DOCUMENT_WORKER_URL`
 - `DOCUMENT_WORKER_SECRET`
 
-The shared worker secret is sent only server-to-server. Supabase secret/service-role credentials never enter browser code.
+The shared worker secret is sent only server-to-server. Supabase service-role credentials never enter worker or browser code in the current bridge design.
+
+A future redeployment should preferably rotate the shared secret and update the worker, web server and hashed credential registry together.
 
 ## Idempotency and retry
 
-The worker uses deterministic derivative paths for each resource version. Before reprocessing it removes the previous page records and known preview assets, then rebuilds the derivative set.
+The worker uses deterministic derivative paths for each resource version. Before reprocessing it removes previous page records and known preview assets, then rebuilds the derivative set.
 
 The UI supports:
 
-- automatic processing after a new Office upload,
-- `processing` status with automatic page refresh,
-- `Retry preview` after failure,
+- automatic processing after a new Office upload;
+- `processing` status with automatic page refresh;
+- `Retry preview` after failure;
 - preservation/download of the original regardless of conversion failure.
+
+While the worker is offline, retries will not complete. The UI must retain a truthful failed/pending state rather than pretending that a preview exists.
 
 ## Failure behavior
 
 On worker failure:
 
-- `processing_status = failed`
-- `processing_error` stores a bounded technical message
-- original remains intact
-- editor can retry processing
-- viewer does not pretend a preview exists
+- `processing_status = failed`;
+- `processing_error` stores a bounded technical message;
+- original remains intact;
+- editor can retry after the worker is restored;
+- viewer does not pretend a preview exists.
 
 ## Deployment
 
-The Next.js app may remain on Vercel.
+The Next.js app and document worker are independently deployable.
 
-Deploy the Docker worker to a persistent container platform such as Railway, Render, Fly.io, Cloud Run, ECS or a small VPS, then set `DOCUMENT_WORKER_URL` in the web application.
+The worker can run on Railway, Render, Fly.io, Cloud Run, ECS or a small VPS. Configure the replacement service from `services/document-worker/`, expose port 8080 or the host-provided `PORT`, use `/health`, and update `DOCUMENT_WORKER_URL` in the web application.
 
-See `services/document-worker/README.md` for environment variables and Docker commands.
+See:
+
+- `services/document-worker/README.md`
+- `docs/15-DEPLOYMENT.md`
+- `docs/25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md`
 
 ## Visual AI note
 
-For visually important PPTX/DOCX material, future AI analysis should use the generated PDF/page imagery as well as extracted text because embedded diagrams, radiographs and charts may carry essential medical information.
+For visually important PPTX/DOCX material, future AI analysis should use generated PDF/page imagery as well as extracted text because embedded diagrams, radiographs and charts may carry essential medical information.

@@ -2,9 +2,21 @@
 
 Containerised document-processing service for BMCH Medicine Education.
 
+## Current deployment status
+
+The former standalone Railway project **BMCH Medicine Document Worker** was decommissioned on 18 September 2026 to free limited Railway plan capacity. There is currently no active production document worker.
+
+The implementation remains fully preserved in this repository. Decommissioning the Railway project did not remove Supabase originals, previously generated derivatives, resource metadata, the document-worker bridge or this Docker service.
+
+For the historical Railway configuration, product impact and complete redeployment checklist, read:
+
+`docs/25-DOCUMENT-WORKER-DECOMMISSION-AND-REDEPLOYMENT.md`
+
+Until a replacement service passes `/health` and an end-to-end Office conversion test, new PPT/PPTX/DOC/DOCX preview processing must be considered unavailable.
+
 ## Purpose
 
-The Next.js application remains deployable to Vercel. Office conversion runs here because LibreOffice and Poppler are heavyweight native binaries and should not live inside ordinary Vercel request handlers.
+The Next.js application remains deployable to Vercel or another ordinary web host. Office conversion runs here because LibreOffice and Poppler are heavyweight native binaries and should not live inside ordinary request handlers.
 
 ## Current processing flow
 
@@ -18,9 +30,9 @@ The Next.js application remains deployable to Vercel. Office conversion runs her
 8. The Edge Function verifies the SHA-256 hash of that worker secret in `document_worker_credentials` and creates signed upload tokens for the requested private preview paths.
 9. The worker uploads PDF/PNG derivatives to the private `bmch-resources` bucket with those signed tokens.
 10. The bridge inserts `resource_pages` and marks the version `ready`.
-11. On failure, the bridge marks the version `failed`; the original uploaded document remains intact and can be retried.
+11. On failure, the bridge marks the version `failed`; the original uploaded document remains intact and can be retried after the worker is restored.
 
-This design deliberately keeps Supabase secret/service-role credentials inside Supabase's own Edge Function environment rather than exposing them to Railway.
+This design deliberately keeps Supabase secret/service-role credentials inside Supabase's own Edge Function environment rather than exposing them to the container host.
 
 ## Worker environment
 
@@ -42,7 +54,9 @@ STORAGE_BUCKET=bmch-resources
 
 The publishable key is intentionally low privilege. Private preview writes are authorised with short-lived signed upload tokens created by the bridge.
 
-`DOCUMENT_WORKER_SECRET` must be identical in Railway and the main Next.js application's server-only `DOCUMENT_WORKER_SECRET` variable. Never expose it through `NEXT_PUBLIC_*` variables or browser code.
+`DOCUMENT_WORKER_SECRET` must be identical in the worker and the main Next.js application's server-only `DOCUMENT_WORKER_SECRET` variable. Never expose it through `NEXT_PUBLIC_*` variables or browser code.
+
+For a new deployment, generate a new high-entropy worker secret unless a current secret is intentionally retained in a secure secret manager. Register the SHA-256 hash in `document_worker_credentials` and rotate the web/worker values together.
 
 ## Main web application environment
 
@@ -54,6 +68,8 @@ DOCUMENT_WORKER_SECRET=<same shared secret>
 ```
 
 It also needs the normal browser-safe Supabase configuration documented in the repository root `.env.example`.
+
+Do not point `DOCUMENT_WORKER_URL` at the historical Railway domain after project deletion. Use the newly generated host/domain and verify `/health` before enabling conversion.
 
 ## Docker
 
@@ -88,6 +104,27 @@ Expected response:
 
 ## Hosting
 
-The production worker is intended for a Docker-capable host such as Railway. The main BMCH web application remains suitable for Vercel.
+The worker can run on any Docker-capable host, including Railway, Render, Fly.io, Cloud Run, ECS or a small VPS. The main BMCH web application remains separately deployable.
+
+Recommended service settings:
+
+- repository: `DrDewan/BMCHmedicineteacher`
+- branch: `main`
+- root directory: `services/document-worker`
+- Dockerfile: `Dockerfile`
+- health check: `/health`
+- target port: `8080` or the injected `PORT`
+- persistent volume: not required
 
 The `/process` endpoint requires the worker secret. `/health` is intentionally unauthenticated for platform health monitoring and does not expose data or credentials.
+
+## Restoration gate
+
+Do not mark document processing restored until all of these pass:
+
+1. worker health endpoint returns HTTP 200;
+2. unauthorised `/process` requests are rejected;
+3. a non-sensitive test PPTX reaches `ready`;
+4. preview PDF, slide/page images, thumbnails and extracted text are stored correctly;
+5. the BMCH viewer renders the generated preview;
+6. failure handling preserves the original and records a bounded error.
